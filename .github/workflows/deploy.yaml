@@ -6,7 +6,6 @@ on:
       - main
 
 jobs:
-  # TODO 01 - Job pentru teste automate
   test:
     runs-on: ubuntu-latest
     steps:
@@ -24,10 +23,8 @@ jobs:
       - name: Run tests
         run: go test ./...
 
-  # Job-ul de compile modificat
   compile:
     runs-on: ubuntu-latest
-    # TODO 02 - Asigurăm ordinea: testul trebuie să fie OK înainte de compile
     needs: test
     steps:
       - name: Checkout code
@@ -43,3 +40,26 @@ jobs:
 
       - name: Compile binary
         run: go build -o myapp
+
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    needs: compile
+    if: success()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Docker image
+        run: |
+          docker build -t ghcr.io/alexchiorean/ci_cd_lab:latest .
+          docker push ghcr.io/alexchiorean/ci_cd_lab:latest
